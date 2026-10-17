@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Extensão de Ombro - Fisioterapia</title>
+  <title>Extensão Lateral do Ombro - Fisioterapia</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
@@ -15,7 +15,7 @@
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
-      background: #f2f2f2;
+      background: #e6f4ea; /* verde fisioterapia */
       display: flex;
       justify-content: center;
     }
@@ -27,9 +27,42 @@
       box-sizing: border-box;
     }
 
-    h1, h2 {
-      text-align: center;
-      margin: 8px 0;
+    /* Cabeçalho com título à esquerda e GIF à direita */
+    #headerRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    #headerText {
+      flex: 1;
+      text-align: left;
+    }
+
+    #headerText h1 {
+      margin: 0;
+      color: #2b6e3f;
+      font-size: 26px;
+      font-weight: bold;
+    }
+
+    #headerText h2 {
+      margin: 0;
+      color: #4a8f5a;
+      font-size: 18px;
+    }
+
+    #headerGif {
+      flex: 0;
+      margin-left: 10px;
+    }
+
+    #headerGif img {
+      width: 90px;
+      height: auto;
+      border-radius: 8px;
+      border: 2px solid #4a8f5a;
     }
 
     #canvas {
@@ -37,6 +70,7 @@
       max-width: 100%;
       border-radius: 10px;
       background: #000;
+      border: 3px solid #4a8f5a;
     }
 
     #angleLeft, #angleRight {
@@ -44,6 +78,7 @@
       margin-top: 10px;
       font-weight: bold;
       text-align: center;
+      color: #2b6e3f;
     }
 
     #controls {
@@ -58,9 +93,14 @@
       font-size: 16px;
       border: none;
       border-radius: 8px;
-      background: #007bff;
+      background: #4a8f5a;
       color: white;
       cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #3b754a;
     }
 
     #log {
@@ -71,6 +111,7 @@
       height: 160px;
       overflow-y: auto;
       font-size: 14px;
+      border: 2px solid #4a8f5a;
     }
 
     #footer {
@@ -84,8 +125,18 @@
 
 <body>
   <div id="container">
-    <h1>Extensão Lateral do Ombro</h1>
-    <h2>Protótipo para Fisioterapia</h2>
+
+    <!-- Cabeçalho com título à esquerda e GIF à direita -->
+    <div id="headerRow">
+      <div id="headerText">
+        <h1>Extensão Lateral do Ombro</h1>
+        <h2>Protótipo para Fisioterapia</h2>
+      </div>
+
+      <div id="headerGif">
+        <img src="https://i.imgur.com/7VQeQ0L.gif" alt="Demonstração do movimento">
+      </div>
+    </div>
 
     <video id="video" style="display:none" playsinline></video>
     <canvas id="canvas" width="640" height="480"></canvas>
@@ -213,7 +264,8 @@
       camera = new Camera(video, {
         onFrame: async () => await pose.send({ image: video }),
         width: 640,
-        height: 480
+        height: 480,
+        facingMode: "environment"  // CÂMERA TRASEIRA
       });
 
       camera.start();
@@ -243,14 +295,3 @@
     }
 
     function limparRegistros() {
-      logDiv.innerHTML = "";
-    }
-
-    btnStart.addEventListener("click", iniciarCamera);
-    btnBegin.addEventListener("click", iniciarAnalise);
-    btnEnd.addEventListener("click", encerrarAnalise);
-    btnSave.addEventListener("click", salvarRegistro);
-    btnClear.addEventListener("click", limparRegistros);
-  </script>
-</body>
-</html>
