@@ -27,42 +27,21 @@
       box-sizing: border-box;
     }
 
-    /* Cabeçalho com título à esquerda e GIF à direita */
-    #headerRow {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    #headerText {
-      flex: 1;
+    /* Cabeçalho */
+    h1 {
       text-align: left;
-    }
-
-    #headerText h1 {
       margin: 0;
       color: #2b6e3f;
       font-size: 26px;
       font-weight: bold;
     }
 
-    #headerText h2 {
+    h2 {
+      text-align: left;
       margin: 0;
       color: #4a8f5a;
       font-size: 18px;
-    }
-
-    #headerGif {
-      flex: 0;
-      margin-left: 10px;
-    }
-
-    #headerGif img {
-      width: 90px;
-      height: auto;
-      border-radius: 8px;
-      border: 2px solid #4a8f5a;
+      margin-bottom: 10px;
     }
 
     #canvas {
@@ -103,6 +82,25 @@
       background: #3b754a;
     }
 
+    /* Figura demonstrativa */
+    #demoFigure {
+      text-align: center;
+      margin-top: 18px;
+    }
+
+    #demoFigure img {
+      max-width: 260px;
+      width: 100%;
+      border-radius: 10px;
+      border: 2px solid #4a8f5a;
+    }
+
+    #demoFigure p {
+      color: #2b6e3f;
+      font-weight: bold;
+      margin-top: 6px;
+    }
+
     #log {
       margin-top: 16px;
       background: white;
@@ -126,17 +124,8 @@
 <body>
   <div id="container">
 
-    <!-- Cabeçalho com título à esquerda e GIF à direita -->
-    <div id="headerRow">
-      <div id="headerText">
-        <h1>Extensão Lateral do Ombro</h1>
-        <h2>Protótipo para Fisioterapia</h2>
-      </div>
-
-      <div id="headerGif">
-        <img src="https://i.imgur.com/7VQeQ0L.gif" alt="Demonstração do movimento">
-      </div>
-    </div>
+    <h1>Extensão Lateral do Ombro</h1>
+    <h2>Protótipo para Fisioterapia</h2>
 
     <video id="video" style="display:none" playsinline></video>
     <canvas id="canvas" width="640" height="480"></canvas>
@@ -150,6 +139,12 @@
       <button id="btnEnd">Encerrar Análise</button>
       <button id="btnSave" disabled>Salvar Medição</button>
       <button id="btnClear">Limpar Registros</button>
+    </div>
+
+    <!-- Figura demonstrativa abaixo dos controladores -->
+    <div id="demoFigure">
+      <img src="figura-extensao-ombro.png" alt="Demonstração de extensão lateral do ombro">
+      <p>Extensão lateral do ombro – referência visual</p>
     </div>
 
     <div id="log">
@@ -246,52 +241,4 @@
         ultimoEsquerdo = angEsq;
         ultimoDireito = angDir;
 
-        angleLeftDisplay.innerText = `Ombro Esquerdo: ${angEsq}°`;
-        angleRightDisplay.innerText = `Ombro Direito: ${angDir}°`;
-
-        drawLandmarks(ctx, [ombroEsq, ombroDir], { color: '#00FF00', lineWidth: 4 });
-        drawLandmarks(ctx, [cotoveloEsq, cotoveloDir], { color: '#FF0000', lineWidth: 4 });
-      }
-
-      ctx.restore();
-
-      btnSave.disabled = !analiseAtiva;
-    }
-
-    function iniciarCamera() {
-      if (!pose) initPose();
-
-      camera = new Camera(video, {
-        onFrame: async () => await pose.send({ image: video }),
-        width: 640,
-        height: 480,
-        facingMode: "environment"  // CÂMERA TRASEIRA
-      });
-
-      camera.start();
-      btnStart.disabled = true;
-      btnStart.innerText = "Câmera ativa";
-    }
-
-    function iniciarAnalise() {
-      analiseAtiva = true;
-      angleLeftDisplay.innerText = "Ombro Esquerdo: 0°";
-      angleRightDisplay.innerText = "Ombro Direito: 0°";
-    }
-
-    function encerrarAnalise() {
-      analiseAtiva = false;
-      angleLeftDisplay.innerText = "Ombro Esquerdo: 0°";
-      angleRightDisplay.innerText = "Ombro Direito: 0°";
-    }
-
-    function salvarRegistro() {
-      const agora = new Date().toLocaleString("pt-BR");
-      const texto = `${agora} | Esq: ${ultimoEsquerdo}° | Dir: ${ultimoDireito}°`;
-
-      const div = document.createElement("div");
-      div.textContent = texto;
-      logDiv.appendChild(div);
-    }
-
-    function limparRegistros() {
+        angleLeftDisplay.innerText = `Ombro Esquerdo: ${angEsq
