@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Extensão de Ombro - Fisioterapia</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f2f2f2;
+      display: flex;
+      justify-content: center;
+    }
+
+    #container {
+      width: 100%;
+      max-width: 700px;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin: 8px 0;
+    }
+
+    #canvas {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 10px;
+      background: #000;
+    }
+
+    #angleLeft, #angleRight {
+      font-size: 22px;
+      margin-top: 10px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    #controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    button {
+      padding: 10px 16px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    #log {
+      margin-top: 16px;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      height: 160px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 8px;
+      box-sizing: border-box;
+    }
+
+    #footer {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+    }
+
+    #demoFigure {
+      text-align: center;
+      margin-top: 18px;
+    }
+
+    #graficoContainer {
+      margin-top: 30px;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+    }
+
+    #btnClearGraph {
+      margin-top: 10px;
+      background: #dc3545;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="container">
+    <h1>Extensão de Ombro</h1>
+    <h2>Protótipo para Fisioterapia</h2>
+
+    <!-- Nome do paciente -->
+    <h2 id="nomePaciente" style="color:#333; margin-bottom:20px;"></h2>
+
+    <video id="video" style="display:none" playsinline></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+
+    <div id="angleLeft">Ombro Esquerdo: 0°</div>
+    <div id="angleRight">Ombro Direito: 0°</div>
+
+    <div id="controls">
+      <button id="btnStart">Iniciar Câmera</button>
+      <button id="btnBegin">Iniciar Análise</button>
+      <button id="btnEnd">Encerrar Análise</button>
+      <button id="btnSave" disabled>Salvar Medição</button>
+      <button id="btnClear">Limpar Registros</button>
+    </div>
+
+    <!-- FIGURA DEMONSTRATIVA -->
+    <div id="demoFigure">
+      <svg width="300" height="360" viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="150" cy="60" r="30" fill="#e0e0e0" stroke="#555" stroke-width="3"/>
+        <rect x="125" y="90" width="50" height="130" rx="25" fill="#e0e0e0" stroke="#555" stroke-width="3"/>
+        <circle cx="125" cy="120" r="10" fill="#555"/>
+        <circle cx="175" cy="120" r="10" fill="#555"/>
+        <line x1="175" y1="120" x2="215" y2="170" stroke="#555" stroke-width="12" stroke-linecap="round"/>
+        <g id="armGroup" transform="rotate(0 125 120)">
+          <line x1="125" y1="120" x2="70" y2="210" stroke="#555" stroke-width="14" stroke-linecap="round"/>
+        </g>
+        <animateTransform xlink:href="#armGroup" attributeName="transform" type="rotate"
+          values="0 125 120; 160 125 120; 0 125 120" dur="2.6s" repeatCount="indefinite"/>
+        <line x1="145" y1="220" x2="135" y2="310" stroke="#555" stroke-width="10" stroke-linecap="round"/>
+        <line x1="155" y1="220" x2="165" y2="310" stroke="#555" stroke-width="10" stroke-linecap="round"/>
+        <text x="150" y="345" font-size="16" fill="#555" text-anchor="middle" font-weight="bold">
+          Abdução do ombro (movimento lateral)
+        </text>
+      </svg>
+    </div>
+
+    <div id="log">
+      <h3>Registros</h3>
+      <div id="logContent"></div>
+    </div>
+
+    <!-- OBSERVAÇÕES ESPECÍFICAS -->
+    <div style="margin-top: 20px;">
+      <h3>Observações específicas</h3>
+      <textarea id="obsEspecificas" rows="4"></textarea>
+    </div>
+
+    <!-- GRÁFICO -->
+    <div id="graficoContainer">
+      <h3>Evolução das Amplitudes</h3>
+      <canvas id="graficoEvolucao"></canvas>
+      <button id="btnClearGraph">Limpar gráfico</button>
+    </div>
+
+    <div id="footer">
+      Protótipo – Extensão de Ombro | Hospedável no GitHub e integrável em Android WebView
+    </div>
+  </div>
+
+  <script>
+    /* ============================
+       CARREGAR NOME DO PACIENTE
+       ============================ */
+    const pacienteAtual = JSON.parse(localStorage.getItem("pacienteAtual"));
+    let historicoKey = "analisesPaciente";
+
+    if (pacienteAtual && pacienteAtual.nome) {
+      document.getElementById("nomePaciente").innerText = "Paciente: " + pacienteAtual.nome;
+      historicoKey = "analisesPaciente_" + pacienteAtual.nome;
+    }
+
+    /* ============================
+       SEU CÓDIGO ORIGINAL
+       ============================ */
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const angleLeftDisplay = document.getElementById('angleLeft');
+    const angleRightDisplay = document.getElementById('angleRight');
+
+    const logDiv = document.getElementById('logContent');
+    const btnStart = document.getElementById('btnStart');
+    const btnBegin = document.getElementById('btnBegin');
+    const btnEnd = document.getElementById('btnEnd');
+    const btnSave = document.getElementById('btnSave');
+    const btnClear = document.getElementById('btnClear');
+
+    let ultimoEsquerdo = 0;
+    let ultimoDireito = 0;
+
+    let pose = null;
+    let camera = null;
+
+    let analiseAtiva = false;
+
+    const SENSIBILIDADE = 0.90;
+
+    function calcularAngulo(a, b, c) {
+      const ab = { x: (b.x - a.x) * SENSIBILIDADE, y: (b.y - a.y) * SENSIBILIDADE };
+      const cb = { x: (b.x - c.x) * SENSIBILIDADE, y: (b.y - c.y) * SENSIBILIDADE };
+
+      const dot = ab.x * cb.x + ab.y * cb.y;
+      const magAB = Math.sqrt(ab.x**2 + ab.y**2);
+      const magCB = Math.sqrt(cb.x**2 + cb.y**2);
+
+      if (magAB === 0 || magCB === 0) return 0;
+
+      let cosAngle = dot / (magAB * magCB);
+      cosAngle = Math.min(Math.max(cosAngle, -1), 1);
+
+      return Math.round(Math.acos(cosAngle) * (180 / Math.PI));
+    }
+
+    function initPose() {
+      pose = new Pose({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+      });
+
+      pose.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6
+      });
+
+      pose.onResults(onResults);
+    }
+
+    function drawLandmarks(ctx, landmarks, style) {
+      ctx.fillStyle = style.color || "#00FF00";
+      ctx.lineWidth = style.lineWidth || 4;
+
+      landmarks.forEach(lm => {
+        ctx.beginPath();
+        ctx.arc(lm.x * canvas.width, lm.y * canvas.height, 6, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    }
+
+    function onResults(results) {
+      ctx.save();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+      if (results.poseLandmarks) {
+        const lm = results.poseLandmarks;
+
+        const troncoEsq = lm[23];
+        const troncoDir = lm[24];
+
+        const ombroEsq = lm[11];
+        const cotoveloEsq = lm[13];
+
+        const ombroDir = lm[12];
+        const cotoveloDir = lm[14];
+
+        let angEsq = 0;
+        let angDir = 0;
+
+        if (analiseAtiva) {
+          angEsq = calcularAngulo(troncoEsq, ombroEsq, cotoveloEsq);
+          angDir = calcularAngulo(troncoDir, ombroDir, cotoveloDir);
+        }
+
+        ultimoEsquerdo = angEsq;
+        ultimoDireito = angDir;
+
+        angleLeftDisplay.innerText = `Ombro Esquerdo: ${angEsq}°`;
+        angleRightDisplay.innerText = `Ombro Direito: ${angDir}°`;
+
+        drawLandmarks(ctx, [ombroEsq, ombroDir], { color: '#00FF00', lineWidth: 4 });
+        drawLandmarks(ctx, [cotoveloEsq, cotoveloDir], { color: '#FF0000', lineWidth: 4 });
+      }
+
+      ctx.restore();
+
+      btnSave.disabled = !analiseAtiva;
+    }
+
+    function iniciarCamera() {
+      if (!pose) initPose();
+
+      camera = new Camera(video, {
+        onFrame: async () => await pose.send({ image: video }),
+        width: 640,
+        height: 480
+      });
+
+      camera.start();
+      btnStart.disabled = true;
+      btnStart.innerText = "Câmera ativa";
+    }
+
+    function iniciarAnalise() {
+      analiseAtiva = true;
+      angleLeftDisplay.innerText = "Ombro Esquerdo: 0°";
+      angleRightDisplay.innerText = "Ombro Direito: 0°";
+    }
+
+    function encerrarAnalise() {
+      analiseAtiva = false;
+      angleLeftDisplay.innerText = "Ombro Esquerdo: 0°";
+      angleRightDisplay.innerText = "Ombro Direito: 0°";
+    }
+
+    /* ============================
+       SALVAR REGISTRO + HISTÓRICO
+       ============================ */
+    function salvarRegistro() {
+      const agora = new Date().toLocaleString("pt-BR");
+      const texto = `${agora} | Esq: ${ultimoEsquerdo}° | Dir: ${ultimoDireito}°`;
+
+      const div = document.createElement("div");
+      div.textContent = texto;
+      logDiv.appendChild(div);
+
+      const obs = document.getElementById("obsEspecificas").value;
+      if (obs.trim() !== "") {
+        const divObs = document.createElement("div");
+        divObs.textContent = "Observação: " + obs;
+        divObs.style.fontStyle = "italic";
+        logDiv.appendChild(divObs);
+      }
+
+      // REGISTRO EM HISTÓRICO
+      let historico = JSON.parse(localStorage.getItem(historicoKey)) || [];
+      historico.push({
+        data: agora,
+        esquerdo: ultimoEsquerdo,
+        direito: ultimoDireito,
+        obs: obs
+      });
+      localStorage.setItem(historicoKey, JSON.stringify(historico));
+
+      atualizarGrafico();
+    }
+
+    function limparRegistros() {
+      logDiv.innerHTML = "";
+    }
+
+    btnStart.addEventListener("click", iniciarCamera);
+    btnBegin.addEventListener("click", iniciarAnalise);
+    btnEnd.addEventListener("click", encerrarAnalise);
+    btnSave.addEventListener("click", salvarRegistro);
+    btnClear.addEventListener("click", limparRegistros);
+
+    /* ============================
+       GRÁFICO DE EVOLUÇÃO
+       ============================ */
+    const ctxGrafico = document.getElementById("graficoEvolucao").getContext("2d");
+    let grafico = null;
+
+    function calcularMedia(lista) {
+      let soma = 0;
+      return lista.map((v, i) => {
+        soma += v;
+        return soma / (i + 1);
+      });
+    }
+
+    function atualizarGrafico() {
+      const historico = JSON.parse(localStorage.getItem(historicoKey)) || [];
+
+      const datas = historico.map(h => h.data);
+      const esquerdo = historico.map(h => h.esquerdo);
+      const direito = historico.map(h => h.direito);
+
+      const mediaEsq = calcularMedia(esquerdo);
+      const mediaDir = calcularMedia(direito);
+
+      if (grafico) grafico.destroy();
+
+      grafico = new Chart(ctxGrafico, {
+        type: "bar",
+        data: {
+          labels: datas,
+          datasets: [
+            {
+              label: "Esquerdo (real)",
+              data: esquerdo,
+              backgroundColor: "rgba(0, 123, 255, 0.6)"
+            },
+            {
+              label: "Direito (real)",
+              data: direito,
+              backgroundColor: "rgba(255, 165, 0, 0.6)"
+            },
+            {
+              label: "Esquerdo (média)",
+              data: mediaEsq,
+              type: "line",
+              borderColor: "blue",
+              borderWidth: 2,
+              fill: false
+            },
+            {
+              label: "Direito (média)",
+              data: mediaDir,
+              type: "line",
+              borderColor: "red",
+              borderWidth: 2,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    atualizarGrafico();
+
+    /* ============================
+       LIMPAR GRÁFICO
+       ============================ */
+    document.getElementById("btnClearGraph").addEventListener("click", () => {
+      if (grafico) {
+        grafico.destroy();
+        grafico = null;
+      }
+    });
+  </script>
+</body>
+</html>
